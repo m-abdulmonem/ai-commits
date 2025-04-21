@@ -15,16 +15,16 @@ class BitbucketService
     private const DEFAULT_BRANCH = 'main';
 
     public function __construct(
-        private string $username,
-        private string $appPassword,
+        private ?string $username,
+        private ?string $appPassword,
         private string $baseUrl = self::BASE_URL
     ) {
-        if (empty($this->username)) {
-            throw new \InvalidArgumentException('Bitbucket username cannot be empty');
-        }
-        if (empty($this->appPassword)) {
-            throw new \InvalidArgumentException('Bitbucket app password cannot be empty');
-        }
+        // if (empty($this->username)) {
+        //     throw new \InvalidArgumentException('Bitbucket username cannot be empty');
+        // }
+        // if (empty($this->appPassword)) {
+        //     throw new \InvalidArgumentException('Bitbucket app password cannot be empty');
+        // }
     }
 
     /**

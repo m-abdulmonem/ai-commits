@@ -15,12 +15,12 @@ class GitLabService
     private const DEFAULT_BRANCH = 'main';
 
     public function __construct(
-        private string $apiToken,
+        private ?string $apiToken,
         private string $baseUrl = self::BASE_URL
     ) {
-        if (empty($this->apiToken)) {
-            throw new \InvalidArgumentException('GitLab API token cannot be empty');
-        }
+        // if (empty($this->apiToken)) {
+        //     throw new \InvalidArgumentException('GitLab API token cannot be empty');
+        // }
     }
 
     /**

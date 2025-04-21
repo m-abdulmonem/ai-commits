@@ -14,12 +14,12 @@ class GitHubService
     private const DEFAULT_PER_PAGE = 30;
 
     public function __construct(
-        private string $apiToken,
+        private ?string $apiToken,
         private string $baseUrl = self::BASE_URL
     ) {
-        if (empty($this->apiToken)) {
-            throw new \InvalidArgumentException('GitHub API token cannot be empty');
-        }
+        // if (empty($this->apiToken)) {
+        //     throw new \InvalidArgumentException('GitHub API token cannot be empty');
+        // }
     }
 
     /**
