@@ -17,7 +17,7 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class SmartCommitCommand extends Command
 {
-    protected $name = 'ai-commit';
+    protected $name = 'commit';
     protected $description = 'Generate AI-powered commit messages based on your changes';
 
     public function __construct(
