@@ -17,7 +17,7 @@ class OpenAIService implements AIInterface
     private const TEMPERATURE = 0.7;
 
     public function __construct(
-        private string $apiKey,
+        private ?string $apiKey,
         private string $baseUrl = 'https://api.openai.com/v1'
     ) {
         if (empty($this->apiKey)) {
