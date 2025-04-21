@@ -16,7 +16,7 @@ class OpenRouterService implements AIInterface
     private const BASE_URL = 'https://openrouter.ai/api/v1';
 
     public function __construct(
-        private string $apiKey,
+        private ?string $apiKey,
         private string $baseUrl = self::BASE_URL
     ) {
         // if (empty($this->apiKey)) {

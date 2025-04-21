@@ -18,7 +18,7 @@ class ClaudeService implements AIInterface
     private const BASE_URL = 'https://api.anthropic.com/v1';
 
     public function __construct(
-        private string $apiKey,
+        private ?string $apiKey,
         private string $baseUrl = self::BASE_URL
     ) {
         // if (empty($this->apiKey)) {
