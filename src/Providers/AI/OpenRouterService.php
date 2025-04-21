@@ -19,9 +19,9 @@ class OpenRouterService implements AIInterface
         private string $apiKey,
         private string $baseUrl = self::BASE_URL
     ) {
-        if (empty($this->apiKey)) {
-            throw new \InvalidArgumentException('OpenRouter API key cannot be empty');
-        }
+        // if (empty($this->apiKey)) {
+        //     throw new \InvalidArgumentException('OpenRouter API key cannot be empty');
+        // }
     }
 
     /**

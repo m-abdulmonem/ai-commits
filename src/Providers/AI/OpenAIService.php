@@ -20,9 +20,9 @@ class OpenAIService implements AIInterface
         private ?string $apiKey,
         private string $baseUrl = 'https://api.openai.com/v1'
     ) {
-        if (empty($this->apiKey)) {
-            throw new \InvalidArgumentException('OpenAI API key cannot be empty');
-        }
+        // if (empty($this->apiKey)) {
+        //     throw new \InvalidArgumentException('OpenAI API key cannot be empty');
+        // }
     }
 
 //    /**
