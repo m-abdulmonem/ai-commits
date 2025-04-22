@@ -3,7 +3,6 @@
 namespace Mabdulmonem\AICommits\Core\DTO;
 
 use Mabdulmonem\AICommits\Core\Enums\CommitType;
-use Mabdulmonem\AICommits\Core\Exceptions\InvalidCommitMessageException;
 
 final class CommitMessage
 {
@@ -29,14 +28,14 @@ final class CommitMessage
     /**
      * Create from raw commit message string
      *
-     * @throws InvalidCommitMessageException
+     * @throws \Exception
      */
     public static function fromString(string $message): self
     {
         $pattern = '/^(?<type>\w+)(?:\((?<scope>[^)]+)\))?(?<breaking>!)?:\s(?<description>.+)$/';
 
         if (!preg_match($pattern, $message, $matches)) {
-            throw new InvalidCommitMessageException("Invalid commit message format");
+            throw new \Exception("Invalid commit message format");
         }
 
         return new self(
@@ -101,16 +100,16 @@ final class CommitMessage
     /**
      * Validate the commit message components
      *
-     * @throws InvalidCommitMessageException
+     * @throws \Exception
      */
     private function validate(): void
     {
         if (empty($this->description)) {
-            throw new InvalidCommitMessageException("Commit description cannot be empty");
+            throw new \Exception("Commit description cannot be empty");
         }
 
         if ($this->scope && !preg_match('/^[a-z0-9-]+$/', $this->scope)) {
-            throw new InvalidCommitMessageException("Scope can only contain lowercase letters, numbers and hyphens");
+            throw new \Exception("Scope can only contain lowercase letters, numbers and hyphens");
         }
     }
 }

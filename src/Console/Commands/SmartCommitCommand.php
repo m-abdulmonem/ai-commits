@@ -112,17 +112,24 @@ class SmartCommitCommand extends Command
         $hunks = $this->git->getDiffHunks();
         $untrackedFiles = $this->git->getUntrackedFiles();
 
+        $provider = $this->resolveAIProvider();
+        $model = $this->option('model');
+
+
+        if ($this->option('all')) {
+            return $this->commitAllChanges($provider, $model);
+            // Push if requested
+            if ($this->option('push')) {
+                $this->pushChanges();
+            }
+            return 0;
+        }
+
         if (empty($hunks) && empty($untrackedFiles)) {
             $this->info('No changes detected.');
             return 0;
         }
 
-        $provider = $this->resolveAIProvider();
-        $model = $this->option('model');
-
-        if ($this->option('all')) {
-            return $this->commitAllChanges($provider, $model);
-        }
 
         // Commit untracked files first
         if (!empty($untrackedFiles)) {

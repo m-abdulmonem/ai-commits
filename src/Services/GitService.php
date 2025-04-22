@@ -54,15 +54,105 @@ class GitService implements GitInterface
      */
     public function stageHunk(DiffHunk $hunk): void
     {
-        $patchFile = tempnam(sys_get_temp_dir(), 'hunk_');
-        file_put_contents($patchFile, $hunk->getFullDiff());
-
         try {
-            $this->executeGitCommand(GitOperation::APPLY, ['--cached', $patchFile]);
-        } finally {
-            unlink($patchFile);
+            $patchContent = $this->buildCompletePatch($hunk);
+            $this->applyPatch($patchContent, $hunk->filePath);
+        } catch (GitException $e) {
+            $this->fallbackStage($hunk);
         }
     }
+
+    private function buildCompletePatch(DiffHunk $hunk): string
+    {
+        $filePath = $hunk->filePath;
+        $diffHeader = "diff --git a/{$filePath} b/{$filePath}\n" .
+            "index 0000000..1111111 100644\n";
+
+        return $diffHeader . $hunk->getValidPatch();
+    }
+
+    private function applyPatch(string $patchContent, string $filePath): void
+    {
+        // Save patch for debugging
+        $patchFile = storage_path('last_patch_' . md5($filePath) . '.diff');
+        file_put_contents($patchFile, $patchContent);
+
+        $process = new Process([
+            'git',
+            'apply',
+            '--cached',
+            '--unidiff-zero',
+            '--whitespace=nowarn',
+            $patchFile
+        ]);
+
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new GitException(
+                GitOperation::APPLY,
+                "Patch application failed: " . $process->getErrorOutput(),
+                $process->getExitCode()
+            );
+        }
+    }
+
+    private function fallbackStage(DiffHunk $hunk): void
+    {
+        $filePath = $hunk->filePath;
+
+        // Method 1: Use git add -p with automatic response
+        $this->tryGitAddPatch($filePath);
+
+        // If still failing, use the nuclear option
+        $this->stageEntireFileAndReset($filePath);
+    }
+
+    private function tryGitAddPatch(string $filePath): void
+    {
+        $process = new Process([
+            'git',
+            'add',
+            '-p',
+            $filePath
+        ]);
+
+        // Automatic responses: 'y' for our hunk, 'n' for others
+        $process->setInput("y\nq\n");
+        $process->setTimeout(30);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new GitException(
+                GitOperation::APPLY,
+                "Interactive staging failed: " . $process->getErrorOutput(),
+                $process->getExitCode()
+            );
+        }
+    }
+
+    private function stageEntireFileAndReset(string $filePath): void
+    {
+        // Stage entire file
+        $this->executeGitCommand(GitOperation::ADD, [$filePath]);
+
+        // Then unstage everything
+        $this->executeGitCommand(GitOperation::RESET, ['-p', $filePath]);
+
+        // Finally stage just our changes
+        $this->tryGitAddPatch($filePath);
+    }
+    // public function stageHunk(DiffHunk $hunk): void
+    // {
+    //     $patchFile = tempnam(sys_get_temp_dir(), 'hunk_');
+    //     file_put_contents($patchFile, $hunk->getFullDiff());
+
+    //     try {
+    //         $this->executeGitCommand(GitOperation::APPLY, ['--cached', '--whitespace=fix', $patchFile]);
+    //     } finally {
+    //         unlink($patchFile);
+    //     }
+    // }
 
     /**
      * Stage all changes
@@ -77,7 +167,7 @@ class GitService implements GitInterface
      */
     public function commit(string $message): void
     {
-        $this->executeGitCommand(GitOperation::COMMIT, ['-m', $message]);
+        $this->executeGitCommand(GitOperation::COMMIT, ['-m', str_replace('"', '', escapeshellarg($message))]);
     }
 
     /**
@@ -111,12 +201,14 @@ class GitService implements GitInterface
     public function hasUpstream(string $branch): bool
     {
         try {
-            $this->executeGitCommand(GitOperation::BRANCH, ['-vv']);
-            return true;
+            // Try to fetch the upstream branch for the given branch
+            $result = $this->executeGitCommand(GitOperation::REV_PARSE, ["--abbrev-ref", "--symbolic-full-name", "{$branch}@{u}"]);
+            return !empty($result); // If the result is not empty, an upstream is set
         } catch (GitException) {
-            return false;
+            return false; // No upstream is set for the branch
         }
     }
+
 
     /**
      * Get list of remotes
@@ -145,21 +237,46 @@ class GitService implements GitInterface
      * @return string
      * @throws GitException
      */
+    // private function executeGitCommand(GitOperation $operation, array $args = []): string
+    // {
+    //     $command = array_merge(['git', $operation->value], $args);
+    //     $process = new Process($command);
+
+    //     try {
+    //         $process->mustRun();
+    //         return trim($process->getOutput());
+    //     } catch (ProcessFailedException $e) {
+    //         throw GitException::commandFailed(
+    //             $operation,
+    //             $process->getCommandLine(),
+    //             $process->getExitCode(),
+    //             $process->getErrorOutput()
+    //         );
+    //     }
+    // }
     private function executeGitCommand(GitOperation $operation, array $args = []): string
     {
         $command = array_merge(['git', $operation->value], $args);
         $process = new Process($command);
-
+        $process->setTimeout(60); // Set a timeout (seconds)
         try {
-            $process->mustRun();
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                throw new ProcessFailedException($process);
+            }
+
             return trim($process->getOutput());
         } catch (ProcessFailedException $e) {
             throw GitException::commandFailed(
                 $operation,
                 $process->getCommandLine(),
                 $process->getExitCode(),
-                $process->getErrorOutput()
+                $process->getErrorOutput() ?: $process->getOutput()
             );
+        } catch (\Throwable $e) {
+            // Handle other unexpected issues (e.g., process not starting)
+            throw new \RuntimeException("Unexpected error during Git command: {$e->getMessage()}");
         }
     }
 
@@ -193,11 +310,11 @@ class GitService implements GitInterface
     private function parseDiffHunks(string $diff): array
     {
         $hunks = [];
+        $diff = str_replace('\n', "\n", $diff);
         $rawHunks = preg_split('/^diff --git/m', $diff, -1, PREG_SPLIT_NO_EMPTY);
-
         foreach ($rawHunks as $rawHunk) {
             try {
-                $hunks[] = DiffHunk::fromDiffString("diff --git" . $rawHunk);
+                $hunks[] = DiffHunk::fromDiffString("diff --git " . ltrim($rawHunk));
             } catch (\Exception $e) {
                 continue; // Skip invalid hunks
             }

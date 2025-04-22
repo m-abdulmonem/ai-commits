@@ -39,6 +39,53 @@ class CommitMessageGenerator
         // Ensure the message follows our standards
         return $this->validateAndFormatMessage($message, $hunk);
     }
+    /**
+     * Generate a commit message for all changes (hunks and new files)
+     *
+     * @param array<DiffHunk> $hunks
+     * @param array<string> $untrackedFiles
+     * @param AIProvider $provider
+     * @param string|null $model
+     * @return CommitMessage
+     * @throws AIException
+     */
+    public function generateForAllChanges(
+        array $hunks,
+        array $untrackedFiles,
+        AIProvider $provider,
+        ?string $model = null
+    ): CommitMessage {
+        // Prepare the diff content
+        $diffContent = "";
+
+        // Add information about new files if any
+        if (!empty($untrackedFiles)) {
+            $diffContent .= "New files added:\n" . implode("\n", $untrackedFiles) . "\n\n";
+        }
+
+        // Add all diffs
+        $diffContent .= implode("\n\n", array_map(
+            fn(DiffHunk $h) => $h->getFullDiff(),
+            $hunks
+        ));
+
+        // Create a more descriptive prompt for the AI
+        $prompt = "Generate a comprehensive commit message that covers all these changes:\n\n" .
+            "The changes include " . count($untrackedFiles) . " new files and " .
+            count($hunks) . " modified files.\n\n" .
+            "Here are the details:\n\n" . $diffContent . "\n\n" .
+            "Provide a clear, concise commit message that follows Conventional Commits standards " .
+            "and summarizes all these changes appropriately. Respond ONLY with the commit message.";
+
+        $message = $this->aiService->generateCommitMessage(
+            $prompt,
+            $provider,
+            $model
+        );
+
+        // Validate and format the message
+        return $this->validateAndFormatMessage($message);
+    }
 
     /**
      * Generate a commit message for multiple hunks

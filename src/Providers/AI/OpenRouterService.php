@@ -48,6 +48,7 @@ class OpenRouterService implements AIInterface
                 ]);
 
             if ($response->failed()) {
+
                 $this->handleErrorResponse($response, $model);
             }
 
@@ -73,6 +74,7 @@ class OpenRouterService implements AIInterface
      */
     private function handleErrorResponse($response, string $model): void
     {
+        dd($response->json());
         $statusCode = $response->status();
         $errorBody = $response->json();
 

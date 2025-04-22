@@ -40,35 +40,72 @@ final class DiffHunk
      */
     public static function fromDiffString(string $diff): self
     {
+        // Normalize the diff: split by newlines and remove excess empty lines
         $lines = explode("\n", $diff);
-        $header = array_shift($lines);
+        $header = trim(array_shift($lines)); // This is the first line, diff header like "diff --git a/... b/..."
 
-        if (!preg_match('/^diff --git a\/(.+?) b\/(.+?)$/', $header, $matches)) {
-            throw new InvalidDiffException("Invalid diff header format");
+        // Skip any extra blank lines between headers and hunks
+        $hunkHeader = null;
+        while (($hunkHeader = array_shift($lines)) !== null) {
+            $hunkHeader = trim($hunkHeader); // Trim whitespace
+            if (empty($hunkHeader)) {
+                continue; // Skip empty lines
+            }
+
+            // Match the hunk header pattern: @@ -6,6 +6,7 @@
+            if (preg_match('/^\s*@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@\s*$/', $hunkHeader, $hunkMatches)) {
+                break; // Found the valid hunk header, exit the loop
+            }
         }
 
-        $oldPath = $matches[1];
-        $filePath = $matches[2];
-
-        $hunkHeader = array_shift($lines);
-        if (!preg_match('/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/', $hunkHeader, $hunkMatches)) {
-            throw new InvalidDiffException("Invalid hunk header format");
+        // If no valid hunk header was found, throw an exception
+        if (!$hunkHeader) {
+            throw new InvalidDiffException("Invalid diff hunk: No valid hunk header found");
         }
 
+        // Extract the old and new file paths from the header
+        $oldPath = $header ? preg_replace('/^diff --git a\/(.+?) b\/(.+?)$/', '$1', $header) : '';
+        $filePath = $header ? preg_replace('/^diff --git a\/(.+?) b\/(.+?)$/', '$2', $header) : '';
+
+        // Assign hunk matches to appropriate variables
+        $oldStart = (int) $hunkMatches[1];
+        $oldLines = isset($hunkMatches[2]) ? (int) $hunkMatches[2] : 1;
+        $newStart = (int) $hunkMatches[3];
+        $newLines = isset($hunkMatches[4]) ? (int) $hunkMatches[4] : 1;
+
+        // Capture the remaining content in the lines
+        $content = implode("\n", $lines);
+
+        // Return the DiffHunk object
         return new self(
             filePath: $filePath,
             oldPath: $oldPath,
-            oldStart: (int) $hunkMatches[1],
-            oldLines: isset($hunkMatches[2]) ? (int) $hunkMatches[2] : 1,
-            newStart: (int) $hunkMatches[3],
-            newLines: isset($hunkMatches[4]) ? (int) $hunkMatches[4] : 1,
+            oldStart: $oldStart,
+            oldLines: $oldLines,
+            newStart: $newStart,
+            newLines: $newLines,
             header: $hunkHeader,
-            content: implode("\n", $lines),
+            content: $content,
             language: self::detectLanguage($filePath),
             complexity: self::calculateComplexity($lines)
         );
     }
 
+
+    // In your DiffHunk class
+    public function getFormattedPatch(): string
+    {
+        $header = "--- a/{$this->filePath}\n" .
+            "+++ b/{$this->filePath}\n";
+
+        $hunkHeader = "@@ -{$this->oldStart},{$this->oldLines} +{$this->newStart},{$this->newLines} @@\n";
+
+        // Clean the content
+        $content = preg_replace('/\r\n?/', "\n", $this->content);
+        $content = rtrim($content) . "\n"; // Ensure single newline at end
+
+        return $header . $hunkHeader . $content;
+    }
     /**
      * Get the full diff including headers
      */
@@ -79,6 +116,23 @@ final class DiffHunk
             . $this->content;
     }
 
+    public function getValidPatch(): string
+    {
+        $header = "--- a/{$this->filePath}\n+++ b/{$this->filePath}\n";
+        $hunkHeader = "@@ -{$this->oldStart},{$this->oldLines} +{$this->newStart},{$this->newLines} @@\n";
+
+        // Normalize content
+        $content = preg_replace('/\r\n?/', "\n", $this->content);
+        $content = preg_replace('/\n$/', '', $content); // Remove trailing newline
+        $content .= "\n"; // Add exactly one newline
+
+        // Validate we have actual changes
+        if (empty(preg_replace('/^[+-]/m', '', $content))) {
+            throw new InvalidDiffException("Diff contains no actual changes");
+        }
+
+        return $header . $hunkHeader . $content;
+    }
     /**
      * Get only the changed lines (without +/- markers)
      */

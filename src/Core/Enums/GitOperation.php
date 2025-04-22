@@ -32,6 +32,8 @@ enum GitOperation: string
     case LS_FILES = 'ls-files';  // Added missing case
     case APPLY = 'apply';       // Added missing case
 
+    case REV_PARSE = 'rev-parse';
+
     /**
      * Get the human-readable description of the operation
      */
@@ -60,7 +62,9 @@ enum GitOperation: string
             self::RM => 'Remove files from the working tree and the index',
             self::MV => 'Move or rename a file, directory, or symlink',
             self::LS_FILES => 'Show information about files in the index and the working tree',
-            self::APPLY => 'Apply a patch to files and/or to the index'
+            self::APPLY => 'Apply a patch to files and/or to the index',
+            self::REV_PARSE =>'Parse revision (commit) identifiers',
+            default => 'Unknown operation',
         };
     }
 
@@ -113,7 +117,7 @@ enum GitOperation: string
 
     /**
      * Get all operations as choice array for CLI/UI selection
-     * 
+     *
      * @return array<string,string> [value => description]
      */
     public static function choices(): array
