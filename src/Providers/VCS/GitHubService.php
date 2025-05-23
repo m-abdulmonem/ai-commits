@@ -68,6 +68,30 @@ class GitHubService
     }
 }
 
+    public function listOrganizations(): array
+{
+    try {
+        $response = Http::withHeaders($this->getHeaders())
+            ->get("{$this->baseUrl}/user/orgs");
+
+        if ($response->failed()) {
+            $this->handleErrorResponse($response, 'listOrganizations');
+        }
+
+        return $response->json(); // returns array of orgs
+    } catch (\Exception $e) {
+        Log::error('Failed to fetch GitHub organizations', [
+            'error' => $e->getMessage(),
+        ]);
+
+        throw VCSException::apiRequestFailed(
+            VCSProvider::GITHUB,
+            $e->getCode(),
+            $e->getMessage()
+        );
+    }
+}
+
 
     /**
      * Get list of repositories
