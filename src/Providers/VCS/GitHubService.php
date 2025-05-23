@@ -25,37 +25,49 @@ class GitHubService
     /**
      * Create a new repository
      */
-    public function createRepository(string $name, array $options = []): RepositoryData
-    {
-        $payload = array_merge([
-            'name' => $name,
-            'description' => $options['description'] ?? '',
-            'private' => $options['private'] ?? false,
-            'auto_init' => $options['auto_init'] ?? true,
-        ], $options);
+ public function createRepository(string $name, array $options = []): RepositoryData
+{
+    $payload = array_merge([
+        'name' => $name,
+        'description' => $options['description'] ?? '',
+        'private' => $options['private'] ?? true,
+        'auto_init' => $options['auto_init'] ?? true,
+    ], $options);
 
-        try {
-            $response = Http::withHeaders($this->getHeaders())
-                ->post("{$this->baseUrl}/user/repos", $payload);
+    $endpoint = isset($options['organization'])
+        ? "{$this->baseUrl}/orgs/{$options['organization']}/repos"
+        : "{$this->baseUrl}/user/repos";
 
-            if ($response->failed()) {
-                $this->handleErrorResponse($response, 'createRepository');
-            }
+    try {
+        $response = Http::withHeaders($this->getHeaders())
+            ->post($endpoint, $payload);
 
-            return RepositoryData::fromApiResponse($response->json(), 'github');
-        } catch (\Exception $e) {
-            Log::error('GitHub repository creation failed', [
-                'error' => $e->getMessage(),
-                'repository' => $name
-            ]);
+        // Log response for debugging
+        Log::debug('GitHub API response', [
+            'endpoint' => $endpoint,
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
 
-            throw VCSException::apiRequestFailed(
-                VCSProvider::GITHUB,
-                $e->getCode(),
-                $e->getMessage()
-            );
+        if ($response->failed()) {
+            $this->handleErrorResponse($response, 'createRepository');
         }
+
+        return RepositoryData::fromApiResponse($response->json(), 'github');
+    } catch (\Exception $e) {
+        Log::error('GitHub repository creation failed', [
+            'error' => $e->getMessage(),
+            'repository' => $name
+        ]);
+
+        throw VCSException::apiRequestFailed(
+            VCSProvider::GITHUB,
+            $e->getCode(),
+            $e->getMessage()
+        );
     }
+}
+
 
     /**
      * Get list of repositories
