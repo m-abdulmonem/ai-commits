@@ -54,7 +54,7 @@ BITBUCKET_APP_PASSWORD=your-bitbucket-app-password
 ### Basic Command
 
 ```bash
-php artisan ai-commit
+php artisan commit
 ```
 
 ### Command Options
@@ -74,19 +74,19 @@ php artisan ai-commit
 Create and push with specific model:
 
 ```bash
-php artisan ai-commit --push --model=claude-2
+php artisan commit --push --model=claude-2
 ```
 
 Dry run with OpenRouter:
 
 ```bash
-php artisan ai-commit --dry-run --provider=openrouter
+php artisan commit --dry-run --provider=openrouter
 ```
 
 Initialize new repo and connect to GitHub:
 
 ```bash
-php artisan ai-commit --auto --vcs=github
+php artisan commit --auto --vcs=github
 ```
 
 ## Workflow Integration
@@ -97,7 +97,7 @@ Add to `.git/hooks/pre-commit`:
 
 ```bash
 #!/bin/sh
-php artisan ai-commit --auto
+php artisan commit --auto
 ```
 
 ### In CI/CD Pipelines
@@ -106,7 +106,7 @@ Example GitHub Action step:
 
 ```yaml
 - name: AI Commit
-  run: php artisan ai-commit --auto --no-ai
+  run: php artisan commit --auto --no-ai
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
