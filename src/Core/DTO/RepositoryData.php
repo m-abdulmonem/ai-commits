@@ -1,6 +1,7 @@
 <?php
 
 namespace Mabdulmonem\AICommits\Core\DTO;
+use Mabdulmonem\AICommits\Core\Enums\VCSProvider;
 
 final class RepositoryData
 {
@@ -42,7 +43,7 @@ final class RepositoryData
      * @param VCSProvider $provider The VCS provider
      * @return self
      */
-    public static function fromApiResponse(array $data, string $provider): self
+    public static function fromApiResponse(array $data, string|VCSProvider $provider): self
     {
         return match (strtolower($provider->value)) {
             'github' => new self(
