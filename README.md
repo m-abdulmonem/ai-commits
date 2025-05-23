@@ -23,7 +23,7 @@ An intelligent Git commit assistant that automatically generates meaningful, con
 Install via Composer:
 
 ```bash
-composer require mabdulmonem/ai-commits
+composer require --dev mabdulmonem/ai-commits:dev-main
 ```
 
 Publish the configuration file:
