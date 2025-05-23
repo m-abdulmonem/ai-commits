@@ -13,13 +13,13 @@ class GitHubService
     private const BASE_URL = 'https://api.github.com';
     private const DEFAULT_PER_PAGE = 30;
 
-    public function __construct(
-        private ?string $apiToken,
+     public function __construct(
+        private ?string $apiToken = null,
         private string $baseUrl = self::BASE_URL
     ) {
-        // if (empty($this->apiToken)) {
-        //     throw new \InvalidArgumentException('GitHub API token cannot be empty');
-        // }
+        if (empty($this->apiToken)) {
+            $this->apiToken = config('ai-commits.providers.github.token');
+        }
     }
 
     /**
