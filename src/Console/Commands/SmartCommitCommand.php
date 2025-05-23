@@ -93,10 +93,34 @@ class SmartCommitCommand extends Command
 
         switch ($choice) {
             case 'create':
-                $repoName = $this->ask('Repository name', basename(getcwd()));
-                $repo = $this->vcs->createRepository($provider, $repoName);
-                $this->git->addRemote('origin', $repo->cloneUrl);
-                $this->info("Created repository: {$repo->url}");
+               $options = [];
+$repoName = $this->ask('Repository name', basename(getcwd()));
+
+if ($provider->value === VCSProvider::GITHUB->value) {
+    // 🔄 Get orgs from GitHub
+    $orgs = $this->vcs->listOrganizations(); // This should call your GitHubService::listOrganizations()
+    $orgNames = collect($orgs)->pluck('login')->all();
+
+    // ➕ Add option for personal account
+    array_unshift($orgNames, 'Personal account');
+
+    // 🎯 Let user select
+    $selectedOrg = $this->choice('Select organization', $orgNames, 0);
+
+    if ($selectedOrg !== 'Personal account') {
+        $options['organization'] = $selectedOrg;
+    }
+
+    $description = $this->ask('Repository description', 'Created by AI Commits');
+    $private = $this->confirm('Is this repository private?', false);
+    $options['description'] = $description;
+    $options['private'] = $private;
+}
+
+$repo = $this->vcs->createRepository($provider, $repoName, $options);
+$this->git->addRemote('origin', $repo->cloneUrl);
+$this->info("Created repository: {$repo->url}");
+
                 break;
 
             case 'connect':
