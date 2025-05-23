@@ -16,7 +16,7 @@ class GitService implements GitInterface
      */
     public function isRepository(): bool
     {
-        return is_dir('.git') || $this->runCommand('git rev-parse --git-dir', false) !== false;
+        return is_dir('.git') and $this->runCommand('git rev-parse --git-dir', false) != null;
     }
 
     /**
