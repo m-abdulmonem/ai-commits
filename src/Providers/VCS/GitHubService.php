@@ -53,7 +53,7 @@ class GitHubService
             $this->handleErrorResponse($response, 'createRepository');
         }
 
-        return RepositoryData::fromApiResponse($response->json(), 'github');
+        return RepositoryData::fromApiResponse($response->json(), VCSProvider::GITHUB);
     } catch (\Exception $e) {
         Log::error('GitHub repository creation failed', [
             'error' => $e->getMessage(),
